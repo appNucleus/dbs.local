@@ -84,7 +84,9 @@ jobs:
 
           set_runtime_env_value_if_missing ACTIONS_ROOT '${HOME}/actions_db.local' "$DEPLOY_ENV_FILE"
           set_runtime_env_value_if_missing BACKUP_ROOT '${HOME}/backup_db.local' "$DEPLOY_ENV_FILE"
-          set_runtime_env_value_if_missing COMPOSE_WAIT_TIMEOUT '180' "$DEPLOY_ENV_FILE"
+          set_runtime_env_value_if_missing COMPOSE_WAIT_TIMEOUT '600' "$DEPLOY_ENV_FILE"
+          set_runtime_env_value_if_missing DEPLOY_LOG_TAIL '200' "$DEPLOY_ENV_FILE"
+          set_runtime_env_value_if_missing RUN_MINIO_INIT 'true' "$DEPLOY_ENV_FILE"
 
           set -a
           # shellcheck disable=SC1090
@@ -93,7 +95,9 @@ jobs:
 
           ACTIONS_ROOT="${ACTIONS_ROOT:-$HOME/actions_db.local}"
           BACKUP_ROOT="${BACKUP_ROOT:-$HOME/backup_db.local}"
-          COMPOSE_WAIT_TIMEOUT="${COMPOSE_WAIT_TIMEOUT:-180}"
+          COMPOSE_WAIT_TIMEOUT="${COMPOSE_WAIT_TIMEOUT:-600}"
+          DEPLOY_LOG_TAIL="${DEPLOY_LOG_TAIL:-200}"
+          RUN_MINIO_INIT="${RUN_MINIO_INIT:-true}"
 
           mkdir -p "$ACTIONS_ROOT" "$BACKUP_ROOT"
 
@@ -101,6 +105,8 @@ jobs:
             echo "ACTIONS_ROOT=$ACTIONS_ROOT"
             echo "BACKUP_ROOT=$BACKUP_ROOT"
             echo "COMPOSE_WAIT_TIMEOUT=$COMPOSE_WAIT_TIMEOUT"
+            echo "DEPLOY_LOG_TAIL=$DEPLOY_LOG_TAIL"
+            echo "RUN_MINIO_INIT=$RUN_MINIO_INIT"
           } >> "$GITHUB_ENV"
 
           echo "Actions root: $ACTIONS_ROOT"
