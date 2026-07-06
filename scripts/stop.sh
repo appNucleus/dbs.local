@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/.."
-docker compose stop
+set -Eeuo pipefail
+
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+load_runtime_env
+cd "$repo_root"
+compose stop
 echo "Stopped. Data preserved."
