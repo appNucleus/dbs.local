@@ -1,16 +1,16 @@
 # db.local
 
-Local Docker database/storage stack for a LangGraph/FastAPI/LLM app.
+Local Docker database/storage stack for a LangGraph/FastAPI/LLM app, with GitHub Actions deployment and automatic rollback support.
 
 ## Included
 
 Long-running containers in this stack:
 
-1. `db-postgres` - PostgreSQL + pgvector
+1. `db-postgres` - PostgreSQL 17 + pgvector
 2. `db-pgadmin` - pgAdmin PostgreSQL admin UI
 3. `db-redis` - Redis
 4. `db-redisinsight` - RedisInsight Redis admin UI
-5. `db-neo4j` - Neo4j + Neo4j Browser
+5. `db-neo4j` - Neo4j Community + Neo4j Browser
 6. `db-minio` - MinIO S3-compatible object storage + console
 7. `db-dashboard` - tiny BusyBox static HTML launcher page
 
@@ -20,7 +20,77 @@ Temporary one-shot container:
 
 PostgreSQL and Redis do not include full web admin panels inside their own DB containers, so this project adds `pgAdmin` and `RedisInsight`.
 
-## Quick start
+## Deployment model
+
+This repo now follows the same successful-deployment backup and rollback pattern as the strategy repo, adjusted safely for a DB stack.
+
+Important difference: this repo has persistent database volumes and mostly third-party images. Deployment rollback restores the last successful Compose source and runtime `.env`; it never deletes database volumes.
+
+Server folders expected for your current server:
+
+```text
+/home/abrar/actions_db.local
+/home/abrar/backup_db.local
+```
+
+Runtime environment file used by GitHub Actions:
+
+```text
+/home/abrar/.config/db.local/runtime.env
+```
+
+The workflow creates that runtime env file from `.env.example` on first deployment and preserves it afterward.
+
+## GitHub Actions deployment
+
+Workflow file:
+
+```text
+.github/workflows/deploy-release.yml
+```
+
+Trigger:
+
+```text
+push to release branch
+```
+
+Expected self-hosted runner labels:
+
+```text
+self-hosted, Linux, X64, db-prod
+```
+
+Recommended server-side runner folder:
+
+```text
+/home/abrar/actions_db.local
+```
+
+Recommended backup folder:
+
+```text
+/home/abrar/backup_db.local
+```
+
+The deployment flow is:
+
+```text
+checkout release commit
+validate scripts and server prerequisites
+create/preserve runtime.env
+generate pgAdmin servers.json
+validate docker compose config
+prepare rollback point
+start candidate stack with health checks
+run smoke test
+replace successful deployment backup
+on failure, restore last successful Compose source and runtime env
+```
+
+The backup folder keeps exactly one successful deployment backup, matching the strategy repo. This backup is a compact source/config snapshot, not a database-data backup.
+
+## Quick start manually on the server
 
 ```bash
 mkdir -p ~/db.local
@@ -31,10 +101,32 @@ cp .env.example .env
 nano .env
 
 chmod +x scripts/*.sh
-./scripts/start.sh
+./scripts/start.sh --wait
 ./scripts/status.sh
 ./scripts/verify.sh
 ```
+
+Or use the same local deploy wrapper as GitHub Actions:
+
+```bash
+DEPLOY_ENV_FILE="$HOME/.config/db.local/runtime.env" ./scripts/deploy-local.sh
+```
+
+## `.env` controls repeated names, paths, ports, and credentials
+
+The `.env.example` file controls:
+
+- server deployment folders: `ACTIONS_ROOT`, `BACKUP_ROOT`, `DEPLOY_ENV_FILE`
+- generated/config folders: `GENERATED_DIR`, `PGADMIN_SERVERS_JSON`, `DASHBOARD_WWW_DIR`, `POSTGRES_BACKUP_DIR`
+- Compose project/network names
+- container names
+- Docker volume names
+- host bind addresses
+- service ports
+- default usernames/passwords
+- MinIO default bucket
+
+This keeps repeated values consistent across Compose, scripts, and GitHub Actions.
 
 ## Default localhost endpoints
 
@@ -94,7 +186,7 @@ The dashboard links point to the admin panels by hostname and port, for example 
 | Neo4j | `neo4j` | `change_me_neo4j_2026` |
 | MinIO | `minioadmin` | `change_me_minio_2026` |
 
-Change passwords in `.env` before first serious use.
+Change passwords in the runtime env before first serious use.
 
 ## LAN access through db.home.arpa
 
@@ -187,7 +279,25 @@ For a clean reset during testing:
 ./scripts/reset-all-data.sh
 ```
 
-This deletes all stack volumes.
+This deletes all stack volumes and should never be used by GitHub Actions.
+
+## PostgreSQL logical backup
+
+```bash
+./scripts/backup-postgres.sh
+```
+
+By default this writes to:
+
+```text
+./backups/postgres
+```
+
+You can change that with:
+
+```env
+POSTGRES_BACKUP_DIR=./backups/postgres
+```
 
 ## Hardware note
 

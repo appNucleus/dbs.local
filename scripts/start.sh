@@ -1,37 +1,39 @@
 #!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/.."
+set -Eeuo pipefail
 
-if [ ! -f .env ]; then
-  echo "No .env found. Creating from .env.example..."
-  cp .env.example .env
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+wait_for_health=false
+if [[ "${1:-}" == "--wait" ]]; then
+  wait_for_health=true
+elif [[ -n "${1:-}" ]]; then
+  echo "Usage: $0 [--wait]" >&2
+  exit 2
 fi
 
-set -a
-. ./.env
-set +a
+ensure_runtime_env_file
+load_runtime_env
 
-mkdir -p generated/pgadmin
+bash "$repo_root/scripts/generate-pgadmin-config.sh"
 
-cat > generated/pgadmin/servers.json <<JSON
-{
-  "Servers": {
-    "1": {
-      "Name": "db-postgres-pgvector",
-      "Group": "Docker",
-      "Host": "postgres",
-      "Port": 5432,
-      "MaintenanceDB": "${POSTGRES_DB}",
-      "Username": "${POSTGRES_USER}",
-      "Password": "${POSTGRES_PASSWORD}",
-      "SSLMode": "prefer",
-      "Favorite": true
-    }
-  }
-}
-JSON
+mkdir -p \
+  "$(repo_path "${POSTGRES_INITDB_DIR:-./initdb/postgres}")" \
+  "$(repo_path "${DASHBOARD_WWW_DIR:-./www}")" \
+  "$(repo_path "${LOCAL_BACKUP_DIR:-./backups}")"
 
-chmod 644 generated/pgadmin/servers.json
+cd "$repo_root"
 
-docker compose up -d
-echo "Started. Run: ./scripts/status.sh && ./scripts/verify.sh"
+up_args=(
+  up
+  --detach
+  --remove-orphans
+)
+
+if [[ "$wait_for_health" == "true" ]]; then
+  up_args+=(--wait --wait-timeout "${COMPOSE_WAIT_TIMEOUT:-180}")
+fi
+
+compose "${up_args[@]}"
+
+echo "Started. Run: DEPLOY_ENV_FILE='$runtime_env_file' ./scripts/status.sh && DEPLOY_ENV_FILE='$runtime_env_file' ./scripts/verify.sh"
