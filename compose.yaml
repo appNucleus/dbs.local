@@ -1,0 +1,200 @@
+name: db-local-stack
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.4-pg17
+    container_name: db-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-langgraph_app}
+      POSTGRES_USER: ${POSTGRES_USER:-langgraph_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_postgres_2026}
+    ports:
+      - "${DB_HOST_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./initdb/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - db_net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: db-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@local.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change_me_pgadmin_2026}
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+    ports:
+      - "${DB_HOST_BIND:-127.0.0.1}:${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./generated/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - db_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: db-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis_2026}
+    command:
+      - sh
+      - -c
+      - redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes
+    ports:
+      - "${DB_HOST_BIND:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - db_net
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: db-redisinsight
+    restart: unless-stopped
+    environment:
+      RI_APP_HOST: 0.0.0.0
+      RI_APP_PORT: 5540
+      RI_ACCEPT_TERMS_AND_CONDITIONS: "true"
+      RI_DATABASE_MANAGEMENT: "true"
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: db-redis
+      RI_REDIS_USERNAME: default
+      RI_REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis_2026}
+      RI_REDIS_TLS: "false"
+      RI_REDIS_DB: 0
+    ports:
+      - "${DB_HOST_BIND:-127.0.0.1}:${REDISINSIGHT_PORT:-5540}:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - db_net
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: db-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-change_me_neo4j_2026}
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-change_me_neo4j_2026}
+      NEO4J_server_memory_heap_initial__size: ${NEO4J_HEAP_INITIAL:-512m}
+      NEO4J_server_memory_heap_max__size: ${NEO4J_HEAP_MAX:-1G}
+      NEO4J_server_memory_pagecache_size: ${NEO4J_PAGECACHE:-512m}
+    ports:
+      - "${DB_HOST_BIND:-127.0.0.1}:${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${DB_HOST_BIND:-127.0.0.1}:${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u \"$${NEO4J_USERNAME}\" -p \"$${NEO4J_PASSWORD}\" 'RETURN 1;' >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+    networks:
+      - db_net
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: db-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change_me_minio_2026}
+    ports:
+      - "${DB_HOST_BIND:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000"
+      - "${DB_HOST_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - db_net
+
+  dashboard:
+    image: busybox:1.37-musl
+    container_name: db-dashboard
+    restart: unless-stopped
+    command: ["httpd", "-f", "-v", "-p", "8080", "-h", "/www"]
+    ports:
+      - "${DASHBOARD_HOST_BIND:-127.0.0.1}:${DASHBOARD_PORT:-8080}:8080"
+    volumes:
+      - ./www:/www:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/index.html || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - db_net
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: db-minio-init
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change_me_minio_2026}
+      MINIO_DEFAULT_BUCKET: ${MINIO_DEFAULT_BUCKET:-langgraph-app}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          echo "Waiting for MinIO..."
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$$MINIO_DEFAULT_BUCKET"
+        mc anonymous set none "local/$$MINIO_DEFAULT_BUCKET"
+        echo "MinIO bucket ready: $$MINIO_DEFAULT_BUCKET"
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - db_net
+
+networks:
+  db_net:
+    name: db-local-net
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  redis_data:
+  redisinsight_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
+  minio_data:
