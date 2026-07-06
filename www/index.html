@@ -3,151 +3,572 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>db.home.arpa · Local Data Services</title>
+  <title>dbs.home.arpa · Data Platform</title>
+  <meta name="description" content="Local database and storage dashboard for dbs.home.arpa" />
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --panel2: #172033;
+      --bg: #0b1220;
+      --panel: rgba(15, 23, 42, 0.86);
+      --panel-2: rgba(30, 41, 59, 0.72);
+      --card: rgba(15, 23, 42, 0.74);
+      --border: rgba(148, 163, 184, 0.18);
       --text: #e5e7eb;
       --muted: #94a3b8;
-      --line: rgba(148, 163, 184, .22);
-      --accent: #38bdf8;
-      --ok: #22c55e;
-      --warn: #f59e0b;
+      --muted-2: #64748b;
+      --accent: #60a5fa;
+      --accent-2: #22d3ee;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --danger: #fb7185;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
     * { box-sizing: border-box; }
+
+    html { min-height: 100%; }
+
     body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top left, #1e3a8a 0, transparent 28rem), var(--bg);
-      color: var(--text);
       min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(59, 130, 246, 0.28), transparent 30%),
+        radial-gradient(circle at 82% 3%, rgba(34, 211, 238, 0.20), transparent 28%),
+        radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.10), transparent 35%),
+        var(--bg);
     }
-    main { max-width: 1120px; margin: 0 auto; padding: 40px 20px; }
-    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; }
-    h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); letter-spacing: -.04em; }
-    .subtitle { color: var(--muted); margin: 0; font-size: 16px; line-height: 1.6; }
-    .badge {
-      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
-      border: 1px solid var(--line); background: rgba(15,23,42,.7);
-      border-radius: 999px; padding: 8px 12px; color: var(--muted); font-size: 14px;
+
+    a { color: inherit; text-decoration: none; }
+
+    .shell {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 44px;
     }
-    .dot { width: 9px; height: 9px; border-radius: 999px; background: var(--ok); box-shadow: 0 0 18px var(--ok); }
-    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.62));
+      box-shadow: var(--shadow);
+      padding: 30px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -160px auto;
+      width: 330px;
+      height: 330px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(96, 165, 250, 0.22), transparent 64%);
+      pointer-events: none;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: #bae6fd;
+      border: 1px solid rgba(125, 211, 252, 0.25);
+      background: rgba(14, 165, 233, 0.10);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--ok);
+      box-shadow: 0 0 0 6px rgba(52, 211, 153, 0.11);
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 0.95;
+      letter-spacing: -0.055em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 720px;
+      line-height: 1.55;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      min-width: 260px;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.50);
+      border-radius: 999px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .section-title {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+      color: #f8fafc;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title span {
+      color: var(--muted-2);
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+
     .card {
-      border: 1px solid var(--line); background: linear-gradient(180deg, rgba(23,32,51,.88), rgba(17,24,39,.88));
-      border-radius: 18px; padding: 18px; min-height: 230px; display: flex; flex-direction: column;
-      box-shadow: 0 18px 48px rgba(0,0,0,.20);
+      grid-column: span 3;
+      position: relative;
+      overflow: hidden;
+      min-height: 220px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.54));
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.20);
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
     }
-    .logo { width: 52px; height: 52px; margin-bottom: 14px; }
-    h2 { margin: 0 0 8px; font-size: 20px; }
-    p { color: var(--muted); line-height: 1.5; margin: 0 0 16px; }
-    .meta { color: #cbd5e1; font-size: 13px; margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; }
-    .meta code { color: #e2e8f0; background: rgba(15,23,42,.75); padding: 2px 6px; border-radius: 7px; }
-    .links { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
-    a.button {
-      color: #06121f; text-decoration: none; font-weight: 700; background: var(--accent);
-      padding: 9px 12px; border-radius: 11px; font-size: 14px;
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(96, 165, 250, 0.42);
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.70));
     }
-    a.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
-    section.note {
-      margin-top: 22px; border: 1px solid var(--line); border-radius: 18px; padding: 18px;
-      background: rgba(15,23,42,.72); color: var(--muted); line-height: 1.6;
+
+    .card a.full-link {
+      display: block;
+      height: 100%;
+      padding: 20px;
     }
-    .small { font-size: 13px; }
-    @media (max-width: 950px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } header { display: block; } .badge { margin-top: 16px; } }
-    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+    .icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: rgba(96, 165, 250, 0.10);
+      border: 1px solid rgba(125, 211, 252, 0.18);
+      margin-bottom: 18px;
+    }
+
+    .icon svg { width: 30px; height: 30px; }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .card .role {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      min-height: 38px;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.13);
+      background: rgba(2, 6, 23, 0.24);
+      border-radius: 12px;
+      padding: 9px 10px;
+      font-size: 12px;
+    }
+
+    .meta-row b { color: #cbd5e1; font-weight: 650; }
+    .meta-row code { color: #93c5fd; font-family: var(--mono); font-size: 12px; }
+
+    .aws {
+      grid-column: span 6;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: rgba(15, 23, 42, 0.64);
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 15px;
+      align-items: start;
+    }
+
+    .aws .icon { margin: 0; }
+
+    .aws h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .aws-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .aws-row {
+      display: grid;
+      grid-template-columns: 118px 1fr;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .aws-row strong {
+      color: #cbd5e1;
+      font-weight: 650;
+    }
+
+    .tagline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.66);
+      color: #cbd5e1;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .panel {
+      grid-column: 1 / -1;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.62);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      color: #cbd5e1;
+      background: rgba(30, 41, 59, 0.50);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    td { color: var(--muted); }
+    td:first-child { color: #e2e8f0; font-weight: 650; }
+    td code { color: #93c5fd; font-family: var(--mono); font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--muted-2);
+      text-align: center;
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+
+    .pg { color: #60a5fa; }
+    .redis { color: #fb7185; }
+    .neo { color: #34d399; }
+    .minio { color: #f87171; }
+    .aws-orange { color: #fbbf24; }
+
+    @media (max-width: 980px) {
+      .card { grid-column: span 6; }
+      .aws { grid-column: span 12; }
+      .hero-top { flex-direction: column; }
+      .hero-actions { justify-content: flex-start; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: min(100% - 22px, 1220px); padding-top: 16px; }
+      .hero { padding: 22px; }
+      .card { grid-column: span 12; }
+      .aws { grid-template-columns: 1fr; }
+      .aws-row { grid-template-columns: 1fr; }
+      th:nth-child(3), td:nth-child(3) { display: none; }
+    }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <div>
-        <h1>Local Data Services</h1>
-        <p class="subtitle">Quick access dashboard for PostgreSQL + pgvector, Redis, Neo4j, and MinIO on <strong>db.home.arpa</strong>.</p>
+  <main class="shell">
+    <section class="hero" aria-label="Database platform header">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow"><span class="pulse"></span> Local Data Platform</div>
+          <h1>dbs.home.arpa</h1>
+          <p class="subtitle">PostgreSQL + pgvector, Redis, Neo4j, and MinIO administration dashboard.</p>
+        </div>
+        <div class="hero-actions" aria-label="Service bindings">
+          <div class="pill">host · dbs.home.arpa</div>
+          <div class="pill">bind · LAN / localhost</div>
+          <div class="pill">stack · Docker Compose</div>
+        </div>
       </div>
-      <div class="badge"><span class="dot"></span><span>Static dashboard · no login</span></div>
-    </header>
-
-    <div class="grid">
-      <article class="card">
-        <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="PostgreSQL logo placeholder">
-          <rect width="64" height="64" rx="16" fill="#2563eb"/>
-          <path d="M18 24c0-7 6-12 14-12s14 5 14 12v12c0 7-6 12-14 12s-14-5-14-12V24z" fill="none" stroke="#dbeafe" stroke-width="4"/>
-          <circle cx="26" cy="29" r="3" fill="#dbeafe"/><circle cx="38" cy="29" r="3" fill="#dbeafe"/>
-          <path d="M25 41c5 3 9 3 14 0" stroke="#dbeafe" stroke-width="4" fill="none" stroke-linecap="round"/>
-        </svg>
-        <h2>PostgreSQL + pgvector</h2>
-        <p>Main durable app database and vector search store for RAG/memory.</p>
-        <div class="links">
-          <a class="button js-link" data-port="5050" href="#">Open pgAdmin</a>
-        </div>
-        <div class="meta">DB endpoint: <code class="js-hostport" data-port="5432">db.home.arpa:5432</code></div>
-      </article>
-
-      <article class="card">
-        <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="Redis logo placeholder">
-          <rect width="64" height="64" rx="16" fill="#dc2626"/>
-          <path d="M16 23l16-8 16 8-16 8-16-8z" fill="#fee2e2"/>
-          <path d="M16 33l16 8 16-8" fill="none" stroke="#fee2e2" stroke-width="5" stroke-linejoin="round"/>
-          <path d="M16 43l16 8 16-8" fill="none" stroke="#fee2e2" stroke-width="5" stroke-linejoin="round"/>
-        </svg>
-        <h2>Redis</h2>
-        <p>Fast cache, rate limiter, queue/lock layer, and temporary runtime state.</p>
-        <div class="links">
-          <a class="button js-link" data-port="5540" href="#">Open RedisInsight</a>
-        </div>
-        <div class="meta">Redis endpoint: <code class="js-hostport" data-port="6379">db.home.arpa:6379</code></div>
-      </article>
-
-      <article class="card">
-        <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="Neo4j logo placeholder">
-          <rect width="64" height="64" rx="16" fill="#059669"/>
-          <circle cx="18" cy="32" r="7" fill="#d1fae5"/><circle cx="46" cy="20" r="7" fill="#d1fae5"/><circle cx="46" cy="44" r="7" fill="#d1fae5"/>
-          <path d="M25 30l14-7M25 35l14 7" stroke="#d1fae5" stroke-width="4" stroke-linecap="round"/>
-        </svg>
-        <h2>Neo4j</h2>
-        <p>Knowledge graph for concepts, relationships, skill hierarchy, and GraphRAG.</p>
-        <div class="links">
-          <a class="button js-link" data-port="7474" href="#">Open Neo4j Browser</a>
-        </div>
-        <div class="meta">Bolt endpoint: <code class="js-hostport" data-port="7687">db.home.arpa:7687</code></div>
-      </article>
-
-      <article class="card">
-        <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="MinIO logo placeholder">
-          <rect width="64" height="64" rx="16" fill="#7c3aed"/>
-          <path d="M18 46V22l14-8 14 8v24l-14 8-14-8z" fill="none" stroke="#ede9fe" stroke-width="4" stroke-linejoin="round"/>
-          <path d="M18 22l14 8 14-8M32 30v24" stroke="#ede9fe" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h2>MinIO</h2>
-        <p>S3-compatible object storage for raw scraped HTML, PDFs, images, and source files.</p>
-        <div class="links">
-          <a class="button js-link" data-port="9001" href="#">Open MinIO Console</a>
-          <a class="button secondary js-link" data-port="9000" href="#">S3 API</a>
-        </div>
-        <div class="meta">S3 endpoint: <code class="js-hostport" data-port="9000">db.home.arpa:9000</code></div>
-      </article>
-    </div>
-
-    <section class="note">
-      <strong>Access note:</strong> this page is intentionally just a static launcher. It does not authenticate users and does not proxy database traffic. Keep these ports LAN-only or behind VPN/firewall rules. If links do not open from another device, set <code>DB_HOST_BIND</code> to your server LAN IP and restart the stack.
-      <div class="small" id="runtime-note"></div>
     </section>
-  </main>
 
-  <script>
-    const host = location.hostname && location.hostname !== "localhost" ? location.hostname : "db.home.arpa";
-    document.querySelectorAll('.js-link').forEach(a => {
-      const port = a.dataset.port;
-      a.href = `http://${host}:${port}`;
-      a.title = a.href;
-    });
-    document.querySelectorAll('.js-hostport').forEach(code => {
-      code.textContent = `${host}:${code.dataset.port}`;
-    });
-    document.getElementById('runtime-note').textContent = `Detected hostname: ${host}`;
-  </script>
+    <section class="grid" aria-label="Admin consoles">
+      <div class="section-title">
+        <h2>Admin consoles</h2>
+        <span>click to open</span>
+      </div>
+
+      <article class="card">
+        <a class="full-link" href="http://dbs.home.arpa:5050" target="_blank" rel="noopener noreferrer" aria-label="Open pgAdmin">
+          <div class="icon pg" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 12h28c4.4 0 8 3.6 8 8v24c0 4.4-3.6 8-8 8H18c-4.4 0-8-3.6-8-8V20c0-4.4 3.6-8 8-8Z" stroke="currentColor" stroke-width="4"/>
+              <path d="M20 25h24M20 33h24M20 41h15" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>pgAdmin</h3>
+          <p class="role">PostgreSQL administration, schema browsing, SQL workbench.</p>
+          <div class="meta">
+            <div class="meta-row"><b>UI</b><code>:5050</code></div>
+            <div class="meta-row"><b>DB</b><code>:5432</code></div>
+          </div>
+        </a>
+      </article>
+
+      <article class="card">
+        <a class="full-link" href="http://dbs.home.arpa:5540" target="_blank" rel="noopener noreferrer" aria-label="Open RedisInsight">
+          <div class="icon redis" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32 8 8 20l24 12 24-12L32 8Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M8 32l24 12 24-12M8 44l24 12 24-12" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>RedisInsight</h3>
+          <p class="role">Redis keys, cache inspection, memory and command monitoring.</p>
+          <div class="meta">
+            <div class="meta-row"><b>UI</b><code>:5540</code></div>
+            <div class="meta-row"><b>Redis</b><code>:6379</code></div>
+          </div>
+        </a>
+      </article>
+
+      <article class="card">
+        <a class="full-link" href="http://dbs.home.arpa:7474" target="_blank" rel="noopener noreferrer" aria-label="Open Neo4j Browser">
+          <div class="icon neo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="18" cy="32" r="8" stroke="currentColor" stroke-width="4"/>
+              <circle cx="46" cy="18" r="8" stroke="currentColor" stroke-width="4"/>
+              <circle cx="46" cy="46" r="8" stroke="currentColor" stroke-width="4"/>
+              <path d="M25 28 39 22M25 36l14 6" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Neo4j Browser</h3>
+          <p class="role">Knowledge graph, concept hierarchy, Cypher workbench.</p>
+          <div class="meta">
+            <div class="meta-row"><b>UI</b><code>:7474</code></div>
+            <div class="meta-row"><b>Bolt</b><code>:7687</code></div>
+          </div>
+        </a>
+      </article>
+
+      <article class="card">
+        <a class="full-link" href="http://dbs.home.arpa:9001" target="_blank" rel="noopener noreferrer" aria-label="Open MinIO Console">
+          <div class="icon minio" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 20 32 8l20 12v24L32 56 12 44V20Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M12 20 32 32l20-12M32 32v24" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>MinIO Console</h3>
+          <p class="role">S3-compatible object storage, buckets, policies, files.</p>
+          <div class="meta">
+            <div class="meta-row"><b>Console</b><code>:9001</code></div>
+            <div class="meta-row"><b>S3 API</b><code>:9000</code></div>
+          </div>
+        </a>
+      </article>
+    </section>
+
+    <section class="grid" aria-label="AWS compatibility">
+      <div class="section-title">
+        <h2>AWS compatibility map</h2>
+        <span>migration targets</span>
+      </div>
+
+      <article class="aws">
+        <div class="icon pg" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 18c0-6 8-10 18-10s18 4 18 10v28c0 6-8 10-18 10s-18-4-18-10V18Z" stroke="currentColor" stroke-width="4"/><path d="M14 18c0 6 8 10 18 10s18-4 18-10M14 32c0 6 8 10 18 10s18-4 18-10" stroke="currentColor" stroke-width="4"/></svg>
+        </div>
+        <div>
+          <h3>PostgreSQL + pgvector</h3>
+          <div class="aws-grid">
+            <div class="aws-row"><strong>AWS target</strong><span>Amazon Aurora Serverless v2 for PostgreSQL</span></div>
+            <div class="aws-row"><strong>Lower fixed</strong><span>Amazon RDS for PostgreSQL</span></div>
+            <div class="aws-row"><strong>Use case</strong><span>App data, chat history, RAG chunks, embeddings, audit logs.</span></div>
+          </div>
+          <div class="tagline"><span class="tag">PostgreSQL-compatible</span><span class="tag">pgvector-ready</span><span class="tag">auto capacity</span></div>
+        </div>
+      </article>
+
+      <article class="aws">
+        <div class="icon redis" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8 8 20l24 12 24-12L32 8Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M8 32l24 12 24-12M8 44l24 12 24-12" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3>Redis</h3>
+          <div class="aws-grid">
+            <div class="aws-row"><strong>AWS target</strong><span>Amazon ElastiCache Serverless for Valkey / Redis OSS</span></div>
+            <div class="aws-row"><strong>Lower fixed</strong><span>Amazon ElastiCache node-based cache</span></div>
+            <div class="aws-row"><strong>Use case</strong><span>Cache, queues, locks, rate limits, short-lived agent state.</span></div>
+          </div>
+          <div class="tagline"><span class="tag">Redis-compatible</span><span class="tag">serverless cache</span><span class="tag">instant scaling</span></div>
+        </div>
+      </article>
+
+      <article class="aws">
+        <div class="icon neo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="32" r="8" stroke="currentColor" stroke-width="4"/><circle cx="46" cy="18" r="8" stroke="currentColor" stroke-width="4"/><circle cx="46" cy="46" r="8" stroke="currentColor" stroke-width="4"/><path d="M25 28 39 22M25 36l14 6" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <h3>Neo4j</h3>
+          <div class="aws-grid">
+            <div class="aws-row"><strong>AWS target</strong><span>Amazon Neptune Serverless</span></div>
+            <div class="aws-row"><strong>Closest Neo4j</strong><span>Neo4j Aura on AWS Marketplace</span></div>
+            <div class="aws-row"><strong>Use case</strong><span>Knowledge graph, skill hierarchy, concept dependencies, GraphRAG.</span></div>
+          </div>
+          <div class="tagline"><span class="tag">openCypher path</span><span class="tag">graph-native</span><span class="tag">schema review</span></div>
+        </div>
+      </article>
+
+      <article class="aws">
+        <div class="icon minio" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 20 32 8l20 12v24L32 56 12 44V20Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M12 20 32 32l20-12M32 32v24" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3>MinIO</h3>
+          <div class="aws-grid">
+            <div class="aws-row"><strong>AWS target</strong><span>Amazon S3</span></div>
+            <div class="aws-row"><strong>Cost tier</strong><span>S3 Standard, Intelligent-Tiering, Glacier classes</span></div>
+            <div class="aws-row"><strong>Use case</strong><span>Raw HTML, PDFs, images, snapshots, exports, document assets.</span></div>
+          </div>
+          <div class="tagline"><span class="tag">S3-compatible</span><span class="tag">object storage</span><span class="tag">elastic scale</span></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid" aria-label="Endpoints">
+      <div class="section-title">
+        <h2>Service endpoints</h2>
+        <span>local clients</span>
+      </div>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Endpoint</th>
+              <th>Admin</th>
+              <th>AWS target</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>PostgreSQL + pgvector</td>
+              <td><code>dbs.home.arpa:5432</code></td>
+              <td><code>http://dbs.home.arpa:5050</code></td>
+              <td>Amazon Aurora Serverless v2 / RDS PostgreSQL</td>
+            </tr>
+            <tr>
+              <td>Redis</td>
+              <td><code>redis://dbs.home.arpa:6379/0</code></td>
+              <td><code>http://dbs.home.arpa:5540</code></td>
+              <td>Amazon ElastiCache Serverless</td>
+            </tr>
+            <tr>
+              <td>Neo4j</td>
+              <td><code>bolt://dbs.home.arpa:7687</code></td>
+              <td><code>http://dbs.home.arpa:7474</code></td>
+              <td>Amazon Neptune Serverless</td>
+            </tr>
+            <tr>
+              <td>MinIO</td>
+              <td><code>http://dbs.home.arpa:9000</code></td>
+              <td><code>http://dbs.home.arpa:9001</code></td>
+              <td>Amazon S3</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer">dbs.home.arpa · local Docker data platform</div>
+  </main>
 </body>
 </html>
