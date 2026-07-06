@@ -3,7 +3,7 @@
 Default `.env` is local-only:
 
 ```env
-DB_HOST_BIND=127.0.0.1
+DB_HOST_BIND=0.0.0.0
 DASHBOARD_HOST_BIND=127.0.0.1
 ```
 

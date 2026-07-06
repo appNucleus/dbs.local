@@ -148,7 +148,7 @@ Keep the dashboard bound to localhost:
 
 ```env
 DASHBOARD_HOST_BIND=127.0.0.1
-DASHBOARD_PORT=8080
+DASHBOARD_PORT=8003
 ```
 
 Add this to `/etc/caddy/Caddyfile`:
@@ -193,7 +193,7 @@ Change passwords in the runtime env before first serious use.
 Default database/admin-panel bind is local-only:
 
 ```env
-DB_HOST_BIND=127.0.0.1
+DB_HOST_BIND=0.0.0.0
 ```
 
 For LAN access, change it to your server IP:
