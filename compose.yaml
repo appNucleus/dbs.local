@@ -97,9 +97,7 @@ services:
     container_name: ${NEO4J_CONTAINER_NAME:-db-neo4j}
     restart: unless-stopped
     environment:
-      NEO4J_AUTH: ${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-change_me_neo4j_2026}
-      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-change_me_neo4j_2026}
+      NEO4J_AUTH: "${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-change_me_neo4j_2026}"
       NEO4J_server_memory_heap_initial__size: ${NEO4J_HEAP_INITIAL:-512m}
       NEO4J_server_memory_heap_max__size: ${NEO4J_HEAP_MAX:-1G}
       NEO4J_server_memory_pagecache_size: ${NEO4J_PAGECACHE:-512m}
@@ -112,10 +110,16 @@ services:
       - neo4j_import:/var/lib/neo4j/import
       - neo4j_plugins:/plugins
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u \"$${NEO4J_USERNAME}\" -p \"$${NEO4J_PASSWORD}\" 'RETURN 1;' >/dev/null 2>&1"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
+      test:
+        - CMD-SHELL
+        - |
+          neo4j_user="$${NEO4J_AUTH%%/*}";
+          neo4j_pass="$${NEO4J_AUTH#*/}";
+          cypher-shell -u "$$neo4j_user" -p "$$neo4j_pass" "RETURN 1;" >/dev/null 2>&1
+      interval: ${NEO4J_HEALTHCHECK_INTERVAL:-15s}
+      timeout: ${NEO4J_HEALTHCHECK_TIMEOUT:-10s}
+      retries: ${NEO4J_HEALTHCHECK_RETRIES:-40}
+      start_period: ${NEO4J_HEALTHCHECK_START_PERIOD:-120s}
     networks:
       - db_net
 
