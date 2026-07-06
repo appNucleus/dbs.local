@@ -113,9 +113,10 @@ services:
       - neo4j_plugins:/plugins
     healthcheck:
       test: ["CMD-SHELL", "cypher-shell -u \"$${NEO4J_USERNAME}\" -p \"$${NEO4J_PASSWORD}\" 'RETURN 1;' >/dev/null 2>&1"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
+      interval: ${NEO4J_HEALTHCHECK_INTERVAL:-15s}
+      timeout: ${NEO4J_HEALTHCHECK_TIMEOUT:-10s}
+      retries: ${NEO4J_HEALTHCHECK_RETRIES:-40}
+      start_period: ${NEO4J_HEALTHCHECK_START_PERIOD:-120s}
     networks:
       - db_net
 

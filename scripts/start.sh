@@ -34,6 +34,37 @@ main_services=(
   dashboard
 )
 
+known_db_containers=(
+  "${POSTGRES_CONTAINER_NAME:-db-postgres}"
+  "${PGADMIN_CONTAINER_NAME:-db-pgadmin}"
+  "${REDIS_CONTAINER_NAME:-db-redis}"
+  "${REDISINSIGHT_CONTAINER_NAME:-db-redisinsight}"
+  "${NEO4J_CONTAINER_NAME:-db-neo4j}"
+  "${MINIO_CONTAINER_NAME:-db-minio}"
+  "${DASHBOARD_CONTAINER_NAME:-db-dashboard}"
+  "${MINIO_INIT_CONTAINER_NAME:-db-minio-init}"
+)
+
+if [[ "${RECREATE_CONTAINERS_ON_DEPLOY:-true}" == "true" ]]; then
+  echo "Recreating DB stack containers. Docker volumes will be preserved."
+
+  compose down \
+    --remove-orphans \
+    --timeout "${COMPOSE_DOWN_TIMEOUT:-60}" \
+    || true
+
+  if [[ "${FORCE_REMOVE_KNOWN_CONTAINERS_ON_DEPLOY:-true}" == "true" ]]; then
+    for container_name in "${known_db_containers[@]}"; do
+      if docker container inspect "$container_name" >/dev/null 2>&1; then
+        echo "Removing existing container: $container_name"
+        docker rm -f "$container_name" >/dev/null 2>&1 || true
+      fi
+    done
+  fi
+
+  echo "Old DB stack containers removed. Named Docker volumes were not removed."
+fi
+
 up_args=(
   up
   --detach
@@ -41,7 +72,7 @@ up_args=(
 )
 
 if [[ "$wait_for_health" == "true" ]]; then
-  up_args+=(--wait --wait-timeout "${COMPOSE_WAIT_TIMEOUT:-300}")
+  up_args+=(--wait --wait-timeout "${COMPOSE_WAIT_TIMEOUT:-600}")
 fi
 
 compose "${up_args[@]}" "${main_services[@]}"
