@@ -22,7 +22,7 @@ jobs:
       - X64
       - dbs-prod
 
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     defaults:
       run:
