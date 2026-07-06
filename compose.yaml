@@ -154,7 +154,7 @@ services:
     volumes:
       - ${DASHBOARD_WWW_DIR:-./www}:/www:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8003/index.html || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/index.html || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
