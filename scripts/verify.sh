@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-set -euo pipefail
-cd "$(dirname "$0")/.."
+set -Eeuo pipefail
 
-set -a
-[ -f .env ] && source .env
-set +a
+# shellcheck source=common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
+load_runtime_env
+
+POSTGRES_CONTAINER_NAME="${POSTGRES_CONTAINER_NAME:-db-postgres}"
+REDIS_CONTAINER_NAME="${REDIS_CONTAINER_NAME:-db-redis}"
+NEO4J_CONTAINER_NAME="${NEO4J_CONTAINER_NAME:-db-neo4j}"
+MINIO_CONTAINER_NAME="${MINIO_CONTAINER_NAME:-db-minio}"
 POSTGRES_USER="${POSTGRES_USER:-langgraph_user}"
 POSTGRES_DB="${POSTGRES_DB:-langgraph_app}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-change_me_redis_2026}"
@@ -14,26 +18,29 @@ NEO4J_PASSWORD="${NEO4J_PASSWORD:-change_me_neo4j_2026}"
 MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-change_me_minio_2026}"
 MINIO_DEFAULT_BUCKET="${MINIO_DEFAULT_BUCKET:-langgraph-app}"
-DASHBOARD_PORT="${DASHBOARD_PORT:-8080}"
+DASHBOARD_PORT="${DASHBOARD_PORT:-8003}"
+DASHBOARD_HOST_BIND="${DASHBOARD_HOST_BIND:-127.0.0.1}"
+
+cd "$repo_root"
 
 printf '\n===== Containers =====\n'
-docker compose ps
+compose ps
 
 printf '\n===== Dashboard =====\n'
-curl -fsS "http://127.0.0.1:${DASHBOARD_PORT}/" >/dev/null && echo "dashboard: ok"
+curl -fsS "http://${DASHBOARD_HOST_BIND}:${DASHBOARD_PORT}/" >/dev/null && echo "dashboard: ok"
 
 printf '\n===== PostgreSQL =====\n'
-docker exec db-postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-docker exec db-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT extname FROM pg_extension WHERE extname='vector';"
+docker exec "$POSTGRES_CONTAINER_NAME" pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+docker exec "$POSTGRES_CONTAINER_NAME" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "CREATE EXTENSION IF NOT EXISTS vector; SELECT extname FROM pg_extension WHERE extname='vector';"
 
 printf '\n===== Redis =====\n'
-docker exec db-redis redis-cli -a "$REDIS_PASSWORD" ping
+docker exec "$REDIS_CONTAINER_NAME" redis-cli -a "$REDIS_PASSWORD" ping
 
 printf '\n===== Neo4j =====\n'
-docker exec db-neo4j cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" "RETURN 1 AS ok;"
+docker exec "$NEO4J_CONTAINER_NAME" cypher-shell -u "$NEO4J_USERNAME" -p "$NEO4J_PASSWORD" "RETURN 1 AS ok;"
 
 printf '\n===== MinIO =====\n'
-docker exec db-minio mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
-docker exec db-minio mc ls "local/$MINIO_DEFAULT_BUCKET" >/dev/null || docker exec db-minio mc ls local
+docker exec "$MINIO_CONTAINER_NAME" mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+docker exec "$MINIO_CONTAINER_NAME" mc ls "local/$MINIO_DEFAULT_BUCKET" >/dev/null || docker exec "$MINIO_CONTAINER_NAME" mc ls local
 
 printf '\nAll checks completed.\n'
