@@ -20,7 +20,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
-      - db-prod
+      - dbs-prod
 
     timeout-minutes: 20
 
