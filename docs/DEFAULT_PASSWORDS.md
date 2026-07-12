@@ -11,4 +11,4 @@
 | 7 | MinIO S3 API | `http://dbs.home.arpa:9000` | `minioadmin` | `change_me_minio_2026` |
 | 8 | MinIO Console | `http://dbs.home.arpa:9001` | `minioadmin` | `change_me_minio_2026` |
 
-Dashboard: `https://dbs.home.arpa`
+`Dashboard`: [https://dbs.home.arpa](https://dbs.home.arpa)
